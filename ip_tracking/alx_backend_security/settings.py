@@ -11,6 +11,7 @@ https://docs.djangoproject.com/en/6.0/ref/settings/
 """
 
 from pathlib import Path
+from celery.schedules import crontab
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -49,6 +50,7 @@ MIDDLEWARE = [
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
     'ip_tracking.middleware.IPLoggingMiddleware',
+    'django_ip_geolocation.middleware.IPGeolocationMiddleware',
 ]
 
 ROOT_URLCONF = 'alx_backend_security.urls'
@@ -117,3 +119,24 @@ USE_TZ = True
 # https://docs.djangoproject.com/en/6.0/howto/static-files/
 
 STATIC_URL = 'static/'
+
+
+CELERY_BROKER_URL = 'redis://localhost:6379/0' # Assumes you have Redis installed
+
+CELERY_BEAT_SCHEDULE = {
+    'detect-anomalies-hourly': {
+        'task': 'ip_tracking.tasks.detect_suspicious_ips',
+        'schedule': crontab(minute=0, hour='*'), # Every hour on the dot
+    },
+}
+
+CACHES = {
+    'default': {
+        'BACKEND': 'django.core.cache.backends.locmem.LocMemCache',
+        'LOCATION': 'unique-snowflake',
+    }
+}
+
+# 2. Custom Rate Limit Constants
+AUTH_RATE = '10/m'
+ANON_RATE = '5/m'
